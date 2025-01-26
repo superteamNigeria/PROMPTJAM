@@ -1,10 +1,12 @@
 import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './styles/globals.css'
+import { TokenMinter } from './components/TokenMinter'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+export function App() {
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <TokenMinter />
+    </div>
+  )
+}
+
+export default App
