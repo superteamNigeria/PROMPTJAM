@@ -1,0 +1,4 @@
+Create a UI that queries the a wallet address and get the content of the wallet, and the total content of the wallet.
+
+
+5ptVCoRVifSxjMZoKNPqznNb8PUqZg2QjmMT2PwquY6Q
