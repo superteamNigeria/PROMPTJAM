@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt-Chidera Token Airdrop</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prompt-Chidera Token Airdrop</h1>
+        <input id="recipientAddress" type="text" placeholder="Enter recipient wallet address">
+        <input id="amount" type="number" placeholder="Enter amount to send">
+        <button id="airdropButton">Send Tokens</button>
+        <p id="status" style="color: #333;"></p>
+    </div>
+
+    <script>
+        const HELIUS_RPC_URL = "https://rpc.helius.xyz/?api-key=YOUR_API_KEY";
+        const TOKEN_MINT_ADDRESS = "YOUR_PROMPT_CHIDERA_TOKEN_MINT_ADDRESS"; // Replace this with the token mint address after creation
+
+        document.getElementById('airdropButton').addEventListener('click', async () => {
+            const recipientAddress = document.getElementById('recipientAddress').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const statusElement = document.getElementById('status');
+
+            if (!recipientAddress || !amount || amount <= 0) {
+                statusElement.textContent = "Please enter a valid address and amount.";
+                statusElement.style.color = "red";
+                return;
+            }
+
+            try {
+                statusElement.textContent = "Sending tokens...";
+                statusElement.style.color = "#333";
+
+                // Create the transaction
+                const response = await fetch(HELIUS_RPC_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        jsonrpc: "2.0",
+                        id: 1,
+                        method: "sendTransaction",
+                        params: {
+                            transaction: {
+                                // Construct your transaction object here using the Solana JS SDK or directly
+                            },
+                            commitment: "confirmed"
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    statusElement.textContent = `Error: ${result.error.message}`;
+                    statusElement.style.color = "red";
+                } else {
+                    statusElement.textContent = `Transaction successful! Tx Signature: ${result.result}`;
+                    statusElement.style.color = "green";
+                }
+
+            } catch (error) {
+                console.error("Error sending tokens:", error);
+                statusElement.textContent = "An error occurred. Please check the console for details.";
+                statusElement.style.color = "red";
+            }
+        });
+    </script>
+</body>
+</html>
