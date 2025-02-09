@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Wallet Tokens</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Solana Token Explorer</h1>
+    <div class="input-group">
+      <input type="text" id="walletAddress" placeholder="Enter Solana Wallet Address"
+        aria-label="Solana Wallet Address">
+      <button onclick="fetchTokens()">Get Tokens</button>
+    </div>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+    </div>
+    <div id="tokens"></div>
+  </div>
+  <script src="script.js"></script>
+</body>
+
+</html>
