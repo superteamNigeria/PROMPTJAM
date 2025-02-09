@@ -1,4 +1,4 @@
-import { Connection, PublicKey, Transaction, TransactionInstruction, Keypair } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction, TransactionInstruction, Keypair, SystemProgram } from "@solana/web3.js";
 import * as bs58 from "bs58";
 import * as fs from 'fs';
 import * as path from 'path';
@@ -21,12 +21,27 @@ async function initiateVault() {
         'confirmed'
     );
 
-    // Load wallet
-    const payerKeypair = loadWallet();
+    // Load wallet as owner
+    const ownerKeypair = loadWallet();
 
-    // Create PDAs for vault
+    // Generate new keypair for vault state
+    const vaultStateKeypair = Keypair.generate();
+
+    // Create PDA for vault auth
+    const [vaultAuth] = PublicKey.findProgramAddressSync(
+        [
+            Buffer.from("auth"),
+            vaultStateKeypair.publicKey.toBuffer()
+        ],
+        PROGRAM_ID
+    );
+
+    // Create PDA for vault using vault auth
     const [vaultPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("vault"), payerKeypair.publicKey.toBuffer()],
+        [
+            Buffer.from("vault"),
+            vaultAuth.toBuffer()
+        ],
         PROGRAM_ID
     );
 
@@ -34,25 +49,29 @@ async function initiateVault() {
     const instruction = new TransactionInstruction({
         programId: PROGRAM_ID,
         keys: [
-            { pubkey: payerKeypair.publicKey, isSigner: true, isWritable: true },
+            { pubkey: ownerKeypair.publicKey, isSigner: true, isWritable: true },
+            { pubkey: vaultStateKeypair.publicKey, isSigner: true, isWritable: true },
+            { pubkey: vaultAuth, isSigner: false, isWritable: false },
             { pubkey: vaultPDA, isSigner: false, isWritable: true },
             { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
         ],
-        data: Buffer.from([0]) // 0 represents the "initiate_vault" instruction
+        data: Buffer.from([0]) // 0 represents the "initialize" instruction
     });
 
     // Create and send transaction
     try {
         const transaction = new Transaction().add(instruction);
-        transaction.feePayer = payerKeypair.publicKey;
+        transaction.feePayer = ownerKeypair.publicKey;
 
         // Get latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash();
         transaction.recentBlockhash = latestBlockhash.blockhash;
 
-        const signature = await connection.sendTransaction(
-            transaction,
-            [payerKeypair]
+        // Sign with both owner and vaultState keypairs
+        transaction.sign(ownerKeypair, vaultStateKeypair);
+
+        const signature = await connection.sendRawTransaction(
+            transaction.serialize()
         );
 
         console.log("Transaction sent! Signature:", signature);
