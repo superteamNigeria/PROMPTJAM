@@ -58,7 +58,7 @@
     </div>
 
     <script>
-        const HELIUS_RPC_URL = "https://rpc.helius.xyz/?api-key=YOUR_API_KEY";
+        const HELIUS_RPC_URL = "https://rpc.helius.xyz/?api-key=";
 
         document.getElementById('createTokenButton').addEventListener('click', async () => {
             const tokenName = document.getElementById('tokenName').value;
@@ -98,6 +98,7 @@
                     createStatusElement.textContent = `Error: ${result.error.message}`;
                     createStatusElement.style.color = "red";
                 } else {
+                    console.log(result);
                     createStatusElement.textContent = `Token created successfully! Mint Address: ${result.result.mint}`;
                     createStatusElement.style.color = "green";
                 }
