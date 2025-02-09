@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prompt-Chidera Airdrop</title>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.3.x/lib/index.iife.min.js"></script>
+</head>
+<body>
+    <div>
+        <h2>Prompt-Chidera Token Airdrop</h2>
+        <input id="recipientWallet" placeholder="Recipient Wallet Address" />
+        <input id="amount" type="number" placeholder="Token Amount" />
+        <button onclick="airdropTokens()">Airdrop Tokens</button>
+    </div>
+
+    <script>
+        const HELIUS_RPC = 'YOUR_HELIUS_RPC_ENDPOINT';
+        const TOKEN_MINT = 'YOUR_TOKEN_MINT_ADDRESS';
+
+        async function airdropTokens() {
+            const connection = new solanaWeb3.Connection(HELIUS_RPC, 'confirmed');
+            const recipientPubkey = new solanaWeb3.PublicKey(
+                document.getElementById('recipientWallet').value
+            );
+            const amount = document.getElementById('amount').value;
+
+            try {
+                // Airdrop logic here
+                alert('Tokens Airdropped Successfully!');
+            } catch (error) {
+                console.error(error);
+                alert('Airdrop Failed');
+            }
+        }
+    </script>
+</body>
+</html>
