@@ -34,6 +34,8 @@ const [vault] = PublicKey.findProgramAddressSync(
 
 (async () => {
   try {
+
+    console.log(keypair.publicKey.toBase58(), "address")
     const txhash = await program.methods
       .initialize()
       .accounts({
