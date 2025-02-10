@@ -1,2 +1,2 @@
-Christian Egaga
-Nasarawa
+Discord: blaqrio 
+state: Nasarawa state
