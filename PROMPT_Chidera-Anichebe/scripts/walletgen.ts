@@ -7,7 +7,7 @@ function generateWallet() {
     const keypair = Keypair.generate();
 
     // Convert secret key to base58 string
-    const secretKey = Buffer.from(keypair.secretKey).toString('base58');
+    const secretKey = Buffer.from(keypair.secretKey).toString('base64');
 
     // Create wallet data object
     const walletData = {
