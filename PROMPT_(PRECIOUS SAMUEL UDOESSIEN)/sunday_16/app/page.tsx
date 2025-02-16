@@ -1,74 +1,143 @@
 "use client"
 
 import { useState } from "react"
-import { Connection, PublicKey, clusterApiUrl, type ParsedTransactionWithMeta } from "@solana/web3.js"
+import { Connection, PublicKey } from "@solana/web3.js"
 import { Metaplex } from "@metaplex-foundation/js"
+import { motion } from "framer-motion"
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token"
+import axios from "axios"
 import WalletForm from "./components/WalletForm"
 import NFTList from "./components/NFTList"
 import TokenList from "./components/TokenList"
 
-const SOLANA_RPC_URL = clusterApiUrl("mainnet-beta")
+const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com"
+
+// Token list URL
+const TOKEN_LIST_URL = "https://cdn.jsdelivr.net/gh/solana-labs/token-list@main/src/tokens/solana.tokenlist.json"
+
+interface TokenInfo {
+  symbol: string
+  name: string
+  address: string
+  decimals: number
+  logoURI?: string
+}
+
+interface TokenData {
+  mint: string
+  amount: number
+  decimals: number
+  symbol: string
+  name: string
+  logoURI?: string
+}
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("")
   const [nfts, setNfts] = useState([])
-  const [tokens, setTokens] = useState([])
+  const [tokens, setTokens] = useState<TokenData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const fetchTokenInfo = async (connection: Connection, tokenList: TokenInfo[], publicKey: PublicKey) => {
+    try {
+      console.log("Fetching token accounts...")
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+        programId: TOKEN_PROGRAM_ID,
+      })
+
+      console.log(`Found ${tokenAccounts.value.length} token accounts`)
+
+      const tokenData = await Promise.all(
+        tokenAccounts.value
+          .filter((account) => {
+            const amount = Number(account.account.data.parsed.info.tokenAmount.amount)
+            const decimals = account.account.data.parsed.info.tokenAmount.decimals
+            return amount > 0 // Filter out empty accounts
+          })
+          .map(async (account) => {
+            const parsedInfo = account.account.data.parsed.info
+            const mintAddress = parsedInfo.mint
+            const amount = Number(parsedInfo.tokenAmount.amount)
+            const decimals = parsedInfo.tokenAmount.decimals
+
+            // Find token info from token list
+            let tokenInfo = tokenList.find((t) => t.address.toLowerCase() === mintAddress.toLowerCase())
+
+            if (!tokenInfo) {
+              console.log(`Token not found in list: ${mintAddress}. Fetching from chain...`)
+              // If not in the list, try to fetch on-chain metadata
+              try {
+                const mintAccount = await connection.getParsedAccountInfo(new PublicKey(mintAddress))
+                const mintData = (mintAccount.value?.data as any).parsed.info
+                tokenInfo = {
+                  symbol: mintData.symbol || "Unknown",
+                  name: mintData.name || "Unknown Token",
+                  address: mintAddress,
+                  decimals: mintData.decimals,
+                }
+              } catch (error) {
+                console.error(`Error fetching on-chain data for ${mintAddress}:`, error)
+              }
+            }
+
+            return {
+              mint: mintAddress,
+              amount,
+              decimals,
+              symbol: tokenInfo?.symbol || "Unknown",
+              name: tokenInfo?.name || "Unknown Token",
+              logoURI: tokenInfo?.logoURI,
+            }
+          }),
+      )
+
+      console.log("Token data:", tokenData)
+      return tokenData
+    } catch (error) {
+      console.error("Error fetching token info:", error)
+      throw error
+    }
+  }
 
   const fetchWalletInfo = async (address: string) => {
     setLoading(true)
     setError("")
-    setNfts([])
-    setTokens([])
-
     try {
+      console.log("Connecting to Solana...")
       const connection = new Connection(SOLANA_RPC_URL, "confirmed")
       const publicKey = new PublicKey(address)
-
-      if (!PublicKey.isOnCurve(publicKey.toBuffer())) {
-        throw new Error("Invalid Solana address")
-      }
-
       const metaplex = new Metaplex(connection)
 
-      // Fetch NFTs
-      try {
-        const nftResponse = await metaplex.nfts().findAllByOwner({ owner: publicKey })
-        setNfts(nftResponse)
-      } catch (nftError) {
-        console.error("Error fetching NFTs:", nftError)
-        setError((prev) => prev + "Failed to fetch NFTs. ")
-      }
+      console.log("Fetching token list...")
+      const tokenListResponse = await axios.get(TOKEN_LIST_URL)
+      const tokenList = tokenListResponse.data.tokens
+      console.log(`Fetched ${tokenList.length} tokens from the list`)
 
-      // Fetch recent transactions
-      try {
-        const signatures = await connection.getSignaturesForAddress(publicKey, { limit: 10 })
-        const transactions = await connection.getParsedTransactions(signatures.map((sig) => sig.signature))
+      console.log("Fetching NFTs...")
+      const nfts = await metaplex.nfts().findAllByOwner({ owner: publicKey })
+      setNfts(nfts)
 
-        const tokenTransactions = transactions
-          .filter((tx): tx is ParsedTransactionWithMeta => tx !== null)
-          .filter((tx) => {
-            const instructions = tx.transaction.message.instructions
-            return instructions.some((ix) => "program" in ix && ix.program === "spl-token")
-          })
-
-        setTokens(tokenTransactions)
-      } catch (tokenError) {
-        console.error("Error fetching token transactions:", tokenError)
-        setError((prev) => prev + "Failed to fetch recent transactions. ")
-      }
+      console.log("Fetching tokens...")
+      const tokenData = await fetchTokenInfo(connection, tokenList, publicKey)
+      setTokens(tokenData)
     } catch (error) {
       console.error("Error fetching wallet info:", error)
-      setError(`Error: ${error.message || "Unknown error occurred"}`)
-    } finally {
-      setLoading(false)
+      setError("Failed to fetch wallet info. Please check the wallet address and your RPC endpoint.")
     }
+    setLoading(false)
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Solana Wallet Info</h1>
+    <main className="container mx-auto px-4 py-8 bg-gradient-to-br from-purple-900 to-green-900 min-h-screen text-white">
+      <motion.h1
+        className="text-4xl font-bold mb-8 text-center text-secondary"
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        Solana Wallet Explorer
+      </motion.h1>
       <WalletForm
         onSubmit={(address) => {
           setWalletAddress(address)
@@ -76,12 +145,21 @@ export default function Home() {
         }}
       />
       {loading && <p className="text-center mt-4">Loading...</p>}
-      {error && <p className="text-center mt-4 text-red-500">{error}</p>}
+      {error && (
+        <motion.p
+          className="text-center mt-4 text-red-400"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {error}
+        </motion.p>
+      )}
       {!loading && !error && walletAddress && (
-        <div className="mt-8">
-          <NFTList nfts={nfts} />
+        <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
           <TokenList tokens={tokens} />
-        </div>
+          <NFTList nfts={nfts} />
+        </motion.div>
       )}
     </main>
   )
