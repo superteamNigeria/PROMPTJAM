@@ -1,0 +1,1 @@
+create a UI that would query a wallet address list total nft and recent tokens bought from the address
