@@ -45,6 +45,4 @@ coverage/
 *.bak
 *.tmp
 .tmp/
-
-
-/Prompt_antonineutron/ProgrammeTemplate/wallet/wallet.json
+wallet/*
